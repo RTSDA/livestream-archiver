@@ -1,0 +1,14 @@
+[package]
+name = "livestream_archiver"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.36", features = ["full"] }
+anyhow = "1.0"
+notify = "6.1"
+chrono = "0.4"
+
+
+# We don't need regex or other conversion-related deps
+# since we're just copying and renaming files
