@@ -88,8 +88,14 @@ impl LivestreamArchiver {
     async fn create_nfo_file(&self, video_path: &PathBuf, date: &NaiveDateTime) -> Result<()> {
         let nfo_path = video_path.with_extension("nfo");
         
+        // Check if NFO file already exists
+        if nfo_path.exists() {
+            println!("NFO file already exists at: {}", nfo_path.display());
+            return Ok(());
+        }
+        
         // Format the full title with date including year
-        let full_title = format!("Divine Worship Service - RTSDA | {}", 
+        let full_title = format!("Afternoon Program - RTSDA | {}", 
             date.format("%B %-d %Y")  // Format like "December 28 2024"
         );
 
@@ -102,7 +108,7 @@ impl LivestreamArchiver {
     <aired>{}</aired>
     <displayseason>{}</displayseason>
     <displayepisode>{}</displayepisode>
-    <tag>Divine Worship Service</tag>
+    <tag>Afternoon Program</tag>
 </episodedetails>"#,
             full_title,
             date.format("%Y").to_string(),
@@ -146,12 +152,53 @@ impl LivestreamArchiver {
         // Create directories if they don't exist
         tokio::fs::create_dir_all(&month_dir).await?;
 
-        // Create output path with .mp4 extension
-        let output_file = month_dir.join(format!(
-            "Divine Worship Service - RTSDA | {}{}",
-            date.format("%B %d %Y"),
-            ".mp4"
+        // Check for existing files
+        let divine_worship_file = month_dir.join(format!(
+            "Divine Worship Service - RTSDA | {}.mp4",
+            date.format("%B %d %Y")
         ));
+        let afternoon_program_file = month_dir.join(format!(
+            "Afternoon Program - RTSDA | {}.mp4",
+            date.format("%B %d %Y")
+        ));
+
+        // Determine which filename to use
+        let (base_filename, nfo_title, nfo_tag) = if !divine_worship_file.exists() {
+            (
+                format!("Divine Worship Service - RTSDA | {}", date.format("%B %d %Y")),
+                format!("Divine Worship Service - RTSDA | {}", date.format("%B %-d %Y")),
+                "Divine Worship Service"
+            )
+        } else if !afternoon_program_file.exists() {
+            (
+                format!("Afternoon Program - RTSDA | {}", date.format("%B %d %Y")),
+                format!("Afternoon Program - RTSDA | {}", date.format("%B %-d %Y")),
+                "Afternoon Program"
+            )
+        } else {
+            // Both exist, add suffix to Afternoon Program
+            let mut suffix = 1;
+            let mut test_file = month_dir.join(format!(
+                "Afternoon Program - RTSDA | {} ({}).mp4",
+                date.format("%B %d %Y"),
+                suffix
+            ));
+            while test_file.exists() {
+                suffix += 1;
+                test_file = month_dir.join(format!(
+                    "Afternoon Program - RTSDA | {} ({}).mp4",
+                    date.format("%B %d %Y"),
+                    suffix
+                ));
+            }
+            (
+                format!("Afternoon Program - RTSDA | {} ({})", date.format("%B %d %Y"), suffix),
+                format!("Afternoon Program - RTSDA | {} ({})", date.format("%B %-d %Y"), suffix),
+                "Afternoon Program"
+            )
+        };
+
+        let output_file = month_dir.join(format!("{}.mp4", base_filename));
         
         println!("Converting to AV1 and saving to: {}", output_file.display());
 
@@ -168,7 +215,7 @@ impl LivestreamArchiver {
             .arg("-maxrate").arg("12M")
             .arg("-bufsize").arg("24M")
             .arg("-c:a").arg("copy")
-            .arg("-y")
+            .arg("-n")  // Never overwrite existing files
             .arg(&output_file)
             .status()
             .await?;
@@ -179,7 +226,28 @@ impl LivestreamArchiver {
 
         // Create NFO file
         println!("Creating NFO file...");
-        self.create_nfo_file(&output_file, &date).await?;
+        let nfo_content = format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<episodedetails>
+    <title>{}</title>
+    <showtitle>LiveStreams</showtitle>
+    <season>{}</season>
+    <episode>{}</episode>
+    <aired>{}</aired>
+    <displayseason>{}</displayseason>
+    <displayepisode>{}</displayepisode>
+    <tag>{}</tag>
+</episodedetails>"#,
+            nfo_title,
+            date.format("%Y").to_string(),
+            date.format("%m%d").to_string(),
+            date.format("%Y-%m-%d"),
+            date.format("%Y"),
+            date.format("%m%d"),
+            nfo_tag
+        );
+
+        let nfo_path = output_file.with_extension("nfo");
+        tokio::fs::write(nfo_path, nfo_content).await?;
 
         println!("Successfully converted {} to AV1 and created NFO", path.display());
 
