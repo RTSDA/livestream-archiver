@@ -74,7 +74,7 @@ impl LivestreamArchiver {
         Err(anyhow!("Timeout after 4 hours waiting for file to stabilize"))
     }
 
-    async fn extract_date_from_filename(&self, filename: &str) -> Result<NaiveDateTime> {
+    pub async fn extract_date_from_filename(&self, filename: &str) -> Result<NaiveDateTime> {
         // Example filename: "2024-12-27_18-42-36.mp4"
         let date_time_str = filename
             .strip_suffix(".mp4")
