@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     println!("Watching directory: {}", watch_path.display());
     println!("Output directory: {}", output_path.display());
 
-    let archiver = LivestreamArchiver::new(output_path);
+    let archiver = LivestreamArchiver::new(&output_path);
     let processed_files = Arc::new(Mutex::new(HashSet::new()));
 
     // Process existing files first
