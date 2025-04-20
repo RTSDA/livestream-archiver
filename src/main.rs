@@ -34,9 +34,37 @@ async fn main() -> Result<()> {
         for entry in entries {
             if let Ok(entry) = entry {
                 let path = entry.path();
-                println!("Found existing file: {}", path.display());
-                if let Err(e) = archiver.process_file(path).await {
-                    eprintln!("Error processing existing file: {}", e);
+                // Only process .mp4 files
+                if path.extension().and_then(|ext| ext.to_str()) == Some("mp4") {
+                    // Extract date from filename to check if output exists
+                    if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
+                        if let Ok(date) = archiver.extract_date_from_filename(filename).await {
+                            // Check if either Divine Worship or Afternoon Program exists for this date
+                            let year_dir = output_path.join(date.format("%Y").to_string());
+                            let month_dir = year_dir.join(format!("{}-{}", 
+                                date.format("%m"),
+                                date.format("%B")
+                            ));
+                            
+                            let divine_worship_file = month_dir.join(format!(
+                                "Divine Worship Service - RTSDA | {}.mp4",
+                                date.format("%B %d %Y")
+                            ));
+                            let afternoon_program_file = month_dir.join(format!(
+                                "Afternoon Program - RTSDA | {}.mp4",
+                                date.format("%B %d %Y")
+                            ));
+                            
+                            if !divine_worship_file.exists() && !afternoon_program_file.exists() {
+                                println!("Found unprocessed file: {}", path.display());
+                                if let Err(e) = archiver.process_file(path).await {
+                                    eprintln!("Error processing existing file: {}", e);
+                                }
+                            } else {
+                                println!("Skipping already processed file: {}", path.display());
+                            }
+                        }
+                    }
                 }
             }
         }
