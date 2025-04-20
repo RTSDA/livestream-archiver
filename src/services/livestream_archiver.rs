@@ -4,15 +4,19 @@ use chrono::NaiveDateTime;
 use tokio::process::Command;
 use tokio::time::Duration;
 
-pub struct LivestreamArchiver<'a> {
-    output_path: &'a PathBuf,
+pub struct LivestreamArchiver {
+    output_path: PathBuf,
 }
 
-impl<'a> LivestreamArchiver<'a> {
-    pub fn new(output_path: &'a PathBuf) -> Self {
+impl LivestreamArchiver {
+    pub fn new(output_path: PathBuf) -> Self {
         LivestreamArchiver {
             output_path,
         }
+    }
+
+    pub fn get_output_path(&self) -> &PathBuf {
+        &self.output_path
     }
    
     async fn wait_for_file_ready(&self, path: &PathBuf) -> Result<()> {

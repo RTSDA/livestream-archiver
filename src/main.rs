@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     println!("Watching directory: {}", watch_path.display());
     println!("Output directory: {}", output_path.display());
 
-    let archiver = LivestreamArchiver::new(&output_path.clone());
+    let archiver = LivestreamArchiver::new(output_path.clone());
     let processed_files = Arc::new(Mutex::new(HashSet::new()));
 
     // Process existing files first
@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
                     if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
                         if let Ok(date) = archiver.extract_date_from_filename(filename).await {
                             // Check if either Divine Worship or Afternoon Program exists for this date
-                            let year_dir = archiver.output_path.join(date.format("%Y").to_string());
+                            let year_dir = archiver.get_output_path().join(date.format("%Y").to_string());
                             let month_dir = year_dir.join(format!("{}-{}", 
                                 date.format("%m"),
                                 date.format("%B")
