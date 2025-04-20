@@ -85,43 +85,6 @@ impl LivestreamArchiver {
         Ok(date)
     }
 
-    async fn create_nfo_file(&self, video_path: &PathBuf, date: &NaiveDateTime) -> Result<()> {
-        let nfo_path = video_path.with_extension("nfo");
-        
-        // Check if NFO file already exists
-        if nfo_path.exists() {
-            println!("NFO file already exists at: {}", nfo_path.display());
-            return Ok(());
-        }
-        
-        // Format the full title with date including year
-        let full_title = format!("Afternoon Program - RTSDA | {}", 
-            date.format("%B %-d %Y")  // Format like "December 28 2024"
-        );
-
-        let nfo_content = format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<episodedetails>
-    <title>{}</title>
-    <showtitle>LiveStreams</showtitle>
-    <season>{}</season>
-    <episode>{}</episode>
-    <aired>{}</aired>
-    <displayseason>{}</displayseason>
-    <displayepisode>{}</displayepisode>
-    <tag>Afternoon Program</tag>
-</episodedetails>"#,
-            full_title,
-            date.format("%Y").to_string(),
-            date.format("%m%d").to_string(),
-            date.format("%Y-%m-%d"),
-            date.format("%Y"),
-            date.format("%m%d")
-        );
-
-        tokio::fs::write(nfo_path, nfo_content).await?;
-        Ok(())
-    }
-
     pub async fn process_file(&self, path: PathBuf) -> Result<()> {
         // Only process .mp4 files
         if path.extension().and_then(|ext| ext.to_str()) != Some("mp4") {
